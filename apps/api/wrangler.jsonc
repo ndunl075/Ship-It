@@ -1,0 +1,17 @@
+{
+  "name": "ship-it-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-12",
+  "workers_dev": true,
+  "d1_databases": [{ "binding": "DB", "database_name": "ship-it", "database_id": "5cb3b83c-9466-4678-b452-85b93e74bef2", "migrations_dir": "migrations" }],
+  "ratelimits": [
+    { "name": "IP_LIMITER", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+    { "name": "REPO_LIMITER", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
+  ],
+  "vars": {
+    "PLANET_ORIGIN": "https://ndunl075.github.io",
+    "SITE_ORIGIN": "https://ndunl075.github.io/Ship-It/",
+    "GITHUB_OIDC_AUDIENCE": "ship-it-api"
+  }
+}
+
