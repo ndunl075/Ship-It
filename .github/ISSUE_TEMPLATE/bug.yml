@@ -1,0 +1,10 @@
+name: Bug report
+description: Report a reproducible problem
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include reproduction steps, expected result, browser and project/launch URL. Never include tokens or secrets.
+    validations:
+      required: true
