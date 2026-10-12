@@ -6,6 +6,7 @@ import { createWorker } from '../src/index';
 import type { Database, Statement, Env } from '../src/types';
 import { Store } from '../src/store';
 import { authenticate } from '../src/auth';
+import { githubClient } from '../src/github';
 const now=new Date('2026-10-12T12:00:00Z'),sha='a'.repeat(40);
 const input={schema_version:1,repository_id:42,deployment_id:7,environment:'production',commit_sha:sha};
 const key=await generateKeyPair('RS256');const jwk=await exportJWK(key.publicKey);jwk.kid='test';
@@ -34,6 +35,12 @@ async function post(claims:Record<string,unknown>={},payload:unknown=input){retu
 async function get(path:string){return worker.fetch(new Request('https://api.test'+path),env);}
 beforeEach(()=>{db=new SqliteAdapter();env={DB:db,PLANET_ORIGIN:'https://planet.test',SITE_ORIGIN:'https://planet.test/Ship-It/',GITHUB_OIDC_AUDIENCE:'ship-it-api',IP_LIMITER:{limit:async()=>({success:true})},REPO_LIMITER:{limit:async()=>({success:true})}};overrides={};logs.length=0;});
 describe('verified registration',()=>{
+ it.each([['Illegal invocation secret-token','illegal_invocation'],['AbortSignal.timeout is not a function secret-token','unsupported_timeout'],['redirect not allowed secret-token','redirect'],['fetch failed secret-token','fetch_failed'],['other secret-token','network']])('classifies runtime failures without leaking messages',async(message,classification)=>{
+  const client=githubClient(undefined,async()=>{throw new TypeError(message);});
+  let error:unknown;try {await client('/repositories/42');}catch(caught){error=caught;}
+  expect(error).toMatchObject({status:502,diagnostic:{upstream_path:'/repositories/42',upstream_failure:classification,upstream_error_name:'TypeError'}});
+  expect(JSON.stringify(error)).not.toContain('secret-token');
+ });
  it.each(['issuer','audience','expiry','future','signature'])('rejects invalid JWT %s cryptographically',async kind=>{
   const other=kind==='signature' ? await generateKeyPair('RS256') : key;
   const jwt=await new SignJWT({repository_id:'42',repository:'owner/repo',repository_visibility:'public',sha,run_id:'8',run_attempt:'1',event_name:'push'})

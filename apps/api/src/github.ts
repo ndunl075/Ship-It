@@ -3,11 +3,21 @@ import type { Identity } from './auth';
 import { ApiError } from './types';
 type Repo = { id: number; private: boolean; visibility?: string; name: string; full_name: string; owner: { login: string }; description: string | null; homepage: string | null; html_url: string };
 export type Verified = { repo: Repo; targetUrl: string | null; statusUrl: string; deployedAt: string };
-export function githubClient(token?: string, fetcher: typeof fetch = fetch) {
+export function githubClient(token?: string, fetcher: typeof fetch = (input, init) => globalThis.fetch(input, init)) {
  return async function get<T>(path: string): Promise<T> {
   let response: Response;
   try { response = await fetcher(`https://api.github.com${path}`, { headers: { Accept:'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', 'User-Agent':'Ship-It', ...(token ? {Authorization:`Bearer ${token}`} : {}) }, signal: AbortSignal.timeout(7000), redirect:'error' }); }
-  catch(error) { throw new ApiError(502,'github_unavailable',{upstream_path:path,upstream_failure:error instanceof Error && ['TimeoutError','AbortError'].includes(error.name)?'timeout':'network'}); }
+  catch(error) {
+   const name=error instanceof Error?error.name:'';
+   const message=error instanceof Error?error.message:'';
+   const failure = ['TimeoutError','AbortError'].includes(name) ? 'timeout'
+    : /Illegal invocation|incorrect this/i.test(message) ? 'illegal_invocation'
+    : /AbortSignal|timeout is not a function/i.test(message) ? 'unsupported_timeout'
+    : /redirect/i.test(message) ? 'redirect'
+    : /fetch failed/i.test(message) ? 'fetch_failed' : 'network';
+   const errorName = name==='TypeError'||name==='Error'||name==='TimeoutError'||name==='AbortError'?name:'other';
+   throw new ApiError(502,'github_unavailable',{upstream_path:path,upstream_failure:failure,upstream_error_name:errorName});
+  }
   const rawRemaining=response.headers.get('X-RateLimit-Remaining');
   const remaining=rawRemaining!==null && /^\d+$/.test(rawRemaining)?Number(rawRemaining):undefined;
   const diagnostic={upstream_path:path,upstream_status:response.status,...(remaining!==undefined?{upstream_remaining:remaining}:{})};
