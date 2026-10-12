@@ -4,32 +4,14 @@ import { Html, Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { toCartesian, type Project } from '@ship-it/shared';
 import { duration, type FlightClock } from './flight';
+import { createTerrainGeometry, noise } from './terrain';
+import { visibleSites } from './world';
 
 export type PlanetProps = { projects: Project[]; selected: Project | null; onSelect: (p: Project) => void; flight: { project: Project; key: number } | null; clock: React.RefObject<FlightClock>; running: boolean; rotate: boolean; visible: boolean; onFailure: () => void };
 const UP = new THREE.Vector3(0, 1, 0);
 const surface = (lat: number, lon: number, r = 2.29) => new THREE.Vector3(...toCartesian(lat, lon, r));
-function noise(x: number, y: number, z: number) { return Math.sin(x * 2.4 + z * 1.8) + Math.cos(y * 3.2 - x * .6) * .6 + Math.sin(z * 4.5 + y) * .28; }
 function Terrain() {
-  const geo = useMemo(() => {
-    const geometry = new THREE.IcosahedronGeometry(2.22, 4);
-    const position = geometry.attributes.position;
-    const colors = new Float32Array(position.count * 3);
-    const palette = ['#608c87', '#70a39a', '#91bda5', '#a4c9a9', '#b2ceab', '#ced9b8'].map(c => new THREE.Color(c));
-    const center = new THREE.Vector3();
-    for (let i = 0; i < position.count; i += 3) {
-      center.set(0, 0, 0);
-      for (let j = 0; j < 3; j++) center.add(new THREE.Vector3().fromBufferAttribute(position, i + j));
-      center.divideScalar(3);
-      const n = noise(center.x, center.y, center.z);
-      const land = n > .12, raised = land ? 1.018 + Math.max(0, n) * .012 : 1;
-      const color = palette[land ? Math.min(5, 2 + Math.floor((n + .1) * 1.7)) : n < -.7 ? 0 : 1];
-      for (let j = 0; j < 3; j++) {
-        const point = new THREE.Vector3().fromBufferAttribute(position, i + j).multiplyScalar(raised);
-        position.setXYZ(i + j, point.x, point.y, point.z); color.toArray(colors, (i + j) * 3);
-      }
-    }
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3)); geometry.computeVertexNormals(); return geometry;
-  }, []);
+  const geo = useMemo(createTerrainGeometry, []);
   useEffect(() => () => geo.dispose(), [geo]);
   return <mesh geometry={geo}><meshStandardMaterial vertexColors roughness={1} flatShading /></mesh>;
 }
@@ -125,7 +107,7 @@ function World(props: PlanetProps) {
     <ambientLight intensity={1.1} color="#c3dccb"/><directionalLight position={[-4, 6, 6]} intensity={3.5} color="#fff0d2"/><directionalLight position={[4, -1, -5]} intensity={1.6} color="#719d9e"/>
     <Sky/><Terrain/>
     {trees.map((p, i) => <Grove key={i} position={p} index={i}/>)}
-    {props.projects.slice(0, 100).map((p, i) => <Site key={p.id} project={p} selected={props.selected?.id === p.id} onSelect={() => props.onSelect(p)} label={i < 4}/>)}
+    {visibleSites(props.projects, props.selected).map((p, i) => <Site key={p.id} project={p} selected={props.selected?.id === p.id} onSelect={() => props.onSelect(p)} label={i < 4}/>)}
     <group rotation={[.14, 0, -.22]}><Line points={orbit} color="#708c82" lineWidth={.7} transparent opacity={.32}/><mesh position={[3.5, 0, 0]}><sphereGeometry args={[.035, 8, 8]}/><meshBasicMaterial color="#d5cba5"/></mesh></group>
     <mesh position={[-3.2, 1.75, -.8]} rotation={[.3, .3, .4]}><icosahedronGeometry args={[.18, 0]}/><meshStandardMaterial color="#a9afa0" flatShading /></mesh>
     <mesh position={[-3.4, 1.4, -.7]}><icosahedronGeometry args={[.065, 0]}/><meshStandardMaterial color="#7c9288" flatShading /></mesh>
@@ -136,3 +118,4 @@ function World(props: PlanetProps) {
 export default function Planet(props: PlanetProps) {
   return <Canvas camera={{ position: [6.8, 3.6, 8], fov: 39 }} dpr={[1, 1.6]} frameloop={props.visible ? props.running ? 'always' : 'demand' : 'never'} gl={{ antialias: true, powerPreference: 'low-power' }} onCreated={({ gl }) => { gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); props.onFailure(); }, { once: true }); }}><World {...props}/></Canvas>;
 }
+

@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.resetModules(); });
 describe('read-only public client', () => {
+  it('opens an entirely local sandbox from a configured production build', async () => {
+    vi.stubEnv('VITE_API_ORIGIN', 'https://planet.example'); vi.stubEnv('VITE_DEMO_MODE', 'false');
+    vi.stubGlobal('location', { search: '?demo=1&launch=sim-0-0' }); const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
+    const { api, isDemo, isSandbox } = await import('./api');
+    expect(isDemo).toBe(true); expect(isSandbox).toBe(true); expect((await api.launch('sim-0-0')).project.id).toBe('gh:800000'); expect(fetcher).not.toHaveBeenCalled();
+  });
   it('uses the configured API, preserves cursors, and never sends write credentials', async () => {
     vi.stubEnv('VITE_API_ORIGIN', 'https://planet.example/'); vi.stubEnv('VITE_DEMO_MODE', 'false');
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], nextCursor: 'next' })));

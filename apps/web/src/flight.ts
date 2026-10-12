@@ -23,5 +23,6 @@ export class LaunchLedger {
   seed(ids: string[]) { ids.forEach(id => this.seen.add(id)); }
 }
 export function shareUrl(kind: 'project' | 'launch', id: string, base = window.location.href) {
-  const url = new URL(base); url.search = ''; url.hash = ''; url.searchParams.set(kind, id); return url.toString();
+  const url = new URL(base), sandbox = url.searchParams.get('demo') === '1';
+  url.search = ''; url.hash = ''; if (sandbox) url.searchParams.set('demo', '1'); url.searchParams.set(kind, id); return url.toString();
 }

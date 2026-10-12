@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { demoLaunches, demoProjects } from './fixtures';
 
 const origin = (import.meta.env.VITE_API_ORIGIN || '').replace(/\/$/, '');
-export const isDemo = import.meta.env.VITE_DEMO_MODE === 'true' || (!origin && import.meta.env.VITE_DEMO_MODE !== 'false');
+export const isSandbox = typeof location !== 'undefined' && new URLSearchParams(location.search).get('demo') === '1';
+export const isDemo = isSandbox || import.meta.env.VITE_DEMO_MODE === 'true' || (!origin && import.meta.env.VITE_DEMO_MODE !== 'false');
 const pageSchema = <T extends z.ZodTypeAny>(item: T) => z.object({ items: z.array(item), nextCursor: z.string().nullable() });
 async function read<T>(path: string, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
   if (!origin) throw new Error('The public planet API has not been connected yet. Try the local demo or configure VITE_API_ORIGIN.');

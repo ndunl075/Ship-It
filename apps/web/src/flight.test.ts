@@ -18,6 +18,10 @@ describe('flight lifecycle', () => {
   it('preserves the Pages base and encodes a clean share link', () => {
     expect(shareUrl('project', 'gh:123', 'https://example.com/Ship-It/?launch=old#thing')).toBe('https://example.com/Ship-It/?project=gh%3A123');
   });
+  it('keeps simulated launch and project links inside the sandbox', () => {
+    expect(shareUrl('launch', 'sim-0-0', 'https://example.com/Ship-It/?demo=1&project=old#thing')).toBe('https://example.com/Ship-It/?demo=1&launch=sim-0-0');
+    expect(shareUrl('project', 'gh:800000', 'https://example.com/Ship-It/?demo=1&launch=old')).toBe('https://example.com/Ship-It/?demo=1&project=gh%3A800000');
+  });
 });
 describe('demo read pagination', () => {
   it('returns all matching records without overlap', () => {
