@@ -70,6 +70,20 @@ describe('verified registration',()=>{
  it('enforces strict schemas, streamed size and limits',async()=>{expect((await post({}, {...input,description:'untrusted'})).status).toBe(400);expect((await post({}, {...input,environment:'staging'})).status).toBe(400);expect((await post({},'x'.repeat(9000))).status).toBe(413);env.REPO_LIMITER={limit:async()=>({success:false})};const r=await post();expect(r.status).toBe(429);expect(r.headers.get('Retry-After')).toBe('60');});
 });
 describe('public API',()=>{
+ it('publishes the verified live URL and refreshes it on later deployments without admitting unsafe URLs',async()=>{
+  overrides['/repos/owner/repo/deployments/7/statuses?per_page=100']=[{state:'success',created_at:new Date(now.getTime()-60000).toISOString(),environment_url:'https://example.com',url:'https://api.github.com/repos/owner/repo/deployments/7/statuses/9'}];
+  expect((await post()).status).toBe(201);
+  expect((await (await get('/v1/projects/42')).json()).homepageUrl).toBe('https://example.com');
+  for(const [id,target,expected] of [[8,'https://new.example.com','https://new.example.com'],[9,'javascript:alert(1)',null]] as const) {
+   overrides[`/repos/owner/repo/deployments/${id}`]={...(github('/repos/owner/repo/deployments/7') as object),id};
+   overrides[`/repos/owner/repo/deployments/${id}/statuses?per_page=100`]=[{state:'success',created_at:now.toISOString(),environment_url:target,url:`https://api.github.com/repos/owner/repo/deployments/${id}/statuses/9`}];
+   expect((await post({}, {...input,deployment_id:id})).status).toBe(201);
+   expect(logs.at(-1)).toMatchObject({repository_id:42,deployment_id:id,verification_result:'verified'});
+   expect((await (await get('/v1/projects/42')).json()).homepageUrl).toBe(expected);
+   if(id===8) {expect((await post()).status).toBe(200);expect((await (await get('/v1/projects/42')).json()).homepageUrl).toBe(expected);}
+  }
+  expect((await (await get('/v1/projects/42')).json()).launchCount).toBe(3);
+ });
  it('returns typed world, detail, project, directory and history with safe URLs',async()=>{const r=await post();const {launch_id}=await r.json();for(const path of ['/v1/world','/v1/projects','/v1/launches','/v1/projects/42','/v1/projects/42/launches',`/v1/launches/${launch_id}`]){const response=await get(path);expect(response.status,path).toBe(200);expect(await response.text()).not.toContain('javascript:');}expect((await (await get('/v1/projects/42')).json()).launchCount).toBe(1);});
  it('hides project and its launches everywhere and records an audit',async()=>{const {launch_id}=await (await post()).json();await new Store(db).moderate(42,true,'Owner removal');expect((await get('/v1/projects/42')).status).toBe(404);expect((await get(`/v1/launches/${launch_id}`)).status).toBe(404);expect((await (await get('/v1/world')).json()).projects).toEqual([]);expect((await (await get('/v1/launches')).json()).items).toEqual([]);expect(db.db.prepare('SELECT count(*) AS n FROM moderation_audit').get()).toEqual({n:1});});
  it('paginates by stable keys without repeats and rejects cross-scope cursors',async()=>{await post();db.db.exec(`INSERT INTO launches SELECT 'second',project_id,8,github_run_id,commit_sha,environment,target_url,status_url,deployed_at,recorded_at FROM launches LIMIT 1`);const page=await (await get('/v1/launches?limit=1')).json();expect(page.nextCursor).toBeTruthy();const next=await (await get(`/v1/launches?limit=1&cursor=${page.nextCursor}`)).json();expect(next.items[0].id).not.toBe(page.items[0].id);expect(next.nextCursor).toBeNull();expect((await get(`/v1/projects?cursor=${page.nextCursor}`)).status).toBe(400);});
