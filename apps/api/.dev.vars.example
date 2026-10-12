@@ -1,0 +1,5 @@
+PLANET_ORIGIN=http://localhost:5173
+SITE_ORIGIN=http://localhost:5173/Ship-It/
+GITHUB_OIDC_AUDIENCE=ship-it-api
+# Optional maintainer-only GitHub API credential. Never commit .dev.vars.
+# GITHUB_API_TOKEN=
