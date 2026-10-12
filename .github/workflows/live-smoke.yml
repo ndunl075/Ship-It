@@ -1,0 +1,79 @@
+name: Live deployment smoke
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: Deployed free Worker HTTPS origin
+        required: true
+        type: string
+permissions:
+  contents: read
+  deployments: write
+  id-token: write
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish real GitHub deployment records
+        id: records
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const args = { ...context.repo, ref: context.sha, auto_merge: false, required_contexts: [] };
+            const target = 'https://ndunl075.github.io/Ship-It/';
+            for (const [key, environment, state] of [['production', 'production', 'success'], ['staging', 'staging', 'success'], ['failed', 'production', 'failure']]) {
+              const { data } = await github.rest.repos.createDeployment({ ...args, environment, production_environment: environment === 'production', description: 'Ship It integration acceptance' });
+              await github.rest.repos.createDeploymentStatus({ ...context.repo, deployment_id: data.id, state, environment, environment_url: target, auto_inactive: false });
+              core.setOutput(key, String(data.id));
+            }
+      - name: Register successful production deployment
+        id: first
+        continue-on-error: true
+        uses: ./
+        with:
+          deployment_id: ${{ steps.records.outputs.production }}
+          api_url: ${{ inputs.api_url }}
+      - name: Repeat the same deployment
+        id: repeat
+        continue-on-error: true
+        uses: ./
+        with:
+          deployment_id: ${{ steps.records.outputs.production }}
+          api_url: ${{ inputs.api_url }}
+      - name: Attempt staging registration
+        id: staging
+        continue-on-error: true
+        uses: ./
+        with:
+          deployment_id: ${{ steps.records.outputs.staging }}
+          api_url: ${{ inputs.api_url }}
+      - name: Attempt failed registration
+        id: failed
+        continue-on-error: true
+        uses: ./
+        with:
+          deployment_id: ${{ steps.records.outputs.failed }}
+          api_url: ${{ inputs.api_url }}
+      - name: Simulate unavailable celebration service
+        id: outage
+        continue-on-error: true
+        uses: ./
+        with:
+          deployment_id: ${{ steps.records.outputs.production }}
+          api_url: https://ship-it-outage.invalid
+      - name: Assert release acceptance
+        uses: actions/github-script@v7
+        env:
+          FIRST_ID: ${{ steps.first.outputs.launch_id }}
+          REPEAT_ID: ${{ steps.repeat.outputs.launch_id }}
+          FIRST_OK: ${{ steps.first.outputs.registered }}
+          STAGING_OK: ${{ steps.staging.outputs.registered }}
+          FAILED_OK: ${{ steps.failed.outputs.registered }}
+          OUTAGE_OK: ${{ steps.outage.outputs.registered }}
+        with:
+          script: |
+            const e = process.env;
+            if (e.FIRST_OK !== 'true' || !e.FIRST_ID || e.FIRST_ID !== e.REPEAT_ID) core.setFailed('Production registration or idempotency failed');
+            if ([e.STAGING_OK, e.FAILED_OK, e.OUTAGE_OK].some(x => x === 'true')) core.setFailed('Unsupported or unavailable deployment became registered');
+            await core.summary.addHeading('Real deployment acceptance').addRaw(`Launch: ${e.FIRST_ID || 'FAILED'}; repeat: ${e.REPEAT_ID || 'FAILED'}`).write();
