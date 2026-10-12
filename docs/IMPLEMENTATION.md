@@ -9,7 +9,7 @@ Source of truth: ../ARCHITECTURE.md. Each accepted feature receives a separate p
 - [x] Real OIDC smoke workflow and runtime redirect hardening — PRs #4, #6
 - [x] CI, Pages publication workflow, operator/setup/security documentation
 - [x] Hosted Pages browser acceptance against the deployed Worker
-- [ ] Versioned Action release
+- [x] Versioned Action release — [v1.0.0](https://github.com/ndunl075/Ship-It/releases/tag/v1.0.0), with moving `v1` tag
 
 ## Evidence
 
@@ -23,4 +23,4 @@ Measured build sizes: approximately 92 KiB gzip initial JS and 253 KiB gzip lazy
 
 The hosted browser test passed against https://ndunl075.github.io/Ship-It/ and the production Worker on October 12, 2026. It loaded a persisted verified launch, followed it through approach, celebration and arrival, checked the project link, then verified the sandbox and its exit. The same run confirmed useful outage and empty-world states. Captured proof is in [real-launch.png](assets/real-launch.png) and [real-launch.webm](assets/real-launch.webm).
 
-The versioned Action release is the only remaining release gate.
+The public [v1.0.0 release](https://github.com/ndunl075/Ship-It/releases/tag/v1.0.0) and moving `v1` tag point to the tested Action. The immutable release commit is `e6963c77e51f859ff94b8ec1c2e80b2c93a50a3a`. The real public GitHub OIDC acceptance and hosted browser tests passed before publication.
