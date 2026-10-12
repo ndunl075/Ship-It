@@ -2,7 +2,7 @@
 
 **A successful deployment becomes a rocket launch on one shared planet.**
 
-[Explore the planet](https://ndunl075.github.io/Ship-It/) · [Try a simulated launch](https://ndunl075.github.io/Ship-It/?demo=1&launch=sim-0-0) · [Setup guide](docs/SETUP.md) · [API](docs/API.md)
+[Explore the planet](https://ndunl075.github.io/Ship-It/) · [Try a simulated launch](https://ndunl075.github.io/Ship-It/?demo=1&launch=sim-0-0) · [Action v1.0.0](https://github.com/ndunl075/Ship-It/releases/tag/v1.0.0) · [Setup guide](docs/SETUP.md) · [API](docs/API.md)
 
 Ship It gives each public GitHub repository a deterministic landing site. Later production deployments return to that same spot. Explore projects, replay an arrival, inspect deployment history, and share an exact launch URL. No Ship It account, adopter API key, paid AI API, or mandatory paid service.
 
