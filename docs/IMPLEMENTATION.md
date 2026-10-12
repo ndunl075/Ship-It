@@ -8,7 +8,8 @@ Source of truth: ../ARCHITECTURE.md. Each accepted feature receives a separate p
 - [x] Astra planet UI, animation, accessible explorer and demo — PR #5
 - [x] Real OIDC smoke workflow and runtime redirect hardening — PRs #4, #6
 - [x] CI, Pages publication workflow, operator/setup/security documentation
-- [ ] Final hosted Pages browser acceptance and versioned Action release
+- [x] Hosted Pages browser acceptance against the deployed Worker
+- [ ] Versioned Action release
 
 ## Evidence
 
@@ -20,4 +21,6 @@ Local validation passes 70 tests (30 API, 26 Action, 12 frontend, 2 shared), str
 
 Measured build sizes: approximately 92 KiB gzip initial JS and 253 KiB gzip lazy 3D chunk. Default real world payload is under 2 KiB with the initial project and two launches; public result counts are bounded. These are measurements of the release candidate, not unlimited scalability or device-performance guarantees.
 
-The final hosted browser test and Action release remain pending until the Pages publication workflow completes. Do not substitute local fixture checks for those gates.
+The hosted browser test passed against https://ndunl075.github.io/Ship-It/ and the production Worker on October 12, 2026. It loaded a persisted verified launch, followed it through approach, celebration and arrival, checked the project link, then verified the sandbox and its exit. The same run confirmed useful outage and empty-world states. Captured proof is in [real-launch.png](assets/real-launch.png) and [real-launch.webm](assets/real-launch.webm).
+
+The versioned Action release is the only remaining release gate.

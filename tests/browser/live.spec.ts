@@ -2,6 +2,17 @@ import { expect, test } from '@playwright/test';
 const site = process.env.LIVE_SITE_URL;
 test.skip(!site, 'Set LIVE_SITE_URL to verify a production build against the real API');
 test.use({ video: 'on' });
+// Preview the production bundle under the real Pages origin so CSP/CORS are
+// exercised unchanged. Only static assets are substituted; API calls stay live.
+test.beforeEach(async ({ page, request }) => {
+  const local = process.env.LOCAL_ASSET_ORIGIN;
+  if (!local) return;
+  await page.route('https://ndunl075.github.io/Ship-It/**', async (route) => {
+    const url = new URL(route.request().url());
+    const response = await request.get(`${local}${url.pathname}${url.search}`);
+    await route.fulfill({ response });
+  });
+});
 
 test('real verified launch, history and full arrival remain usable', async ({ page, request }) => {
   const response = await request.get('https://ship-it-api.coform.workers.dev/v1/world');

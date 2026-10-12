@@ -8,6 +8,8 @@ Ship It gives each public GitHub repository a deterministic landing site. Later 
 
 ![The shared miniature planet](docs/assets/planet-desktop.png)
 
+Live browser evidence: [watch a verified production deployment arrive](docs/assets/real-launch.webm) or [view the arrival state](docs/assets/real-launch.png).
+
 ## Add a rocket to your deploy
 
 Your provider must create a **public GitHub deployment** with a recent successful `production` status. Add [the deployment-status workflow](examples/deployment-status.yml), which pins a tested full commit. The essential step is:
