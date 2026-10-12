@@ -1,0 +1,21 @@
+# Template: replace the Action revision and Worker origin before installation.
+name: Celebrate a production deployment
+on:
+  deployment_status:
+jobs:
+  launch:
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'production'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Launch on Ship It
+        id: ship-it
+        continue-on-error: true
+        uses: ndunl075/Ship-It@REPLACE_WITH_TESTED_40_CHARACTER_COMMIT_SHA
+        with:
+          deployment_id: ${{ github.event.deployment.id }}
+          api_url: https://YOUR-WORKER.workers.dev

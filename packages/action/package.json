@@ -1,0 +1,13 @@
+{
+  "name": "@ship-it/action",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node24 --format=esm --outfile=dist/index.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": { "@ship-it/shared": "workspace:*" },
+  "devDependencies": { "esbuild": "^0.25.12" }
+}
