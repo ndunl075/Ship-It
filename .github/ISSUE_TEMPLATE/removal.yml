@@ -1,0 +1,16 @@
+name: Project removal or abuse
+description: Request that a project be hidden from the planet
+body:
+  - type: input
+    id: project
+    attributes:
+      label: Project or repository URL
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason and ownership evidence
+      description: This is public. Do not post private personal information; for sensitive issues use the repository Security tab private reporting if enabled.
+    validations:
+      required: true

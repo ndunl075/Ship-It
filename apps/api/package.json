@@ -1,1 +1,21 @@
-{"name":"@ship-it/api","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"wrangler dev","typecheck":"tsc --noEmit","test":"vitest run","build":"wrangler deploy --dry-run --outdir dist","db:migrate:local":"wrangler d1 migrations apply ship-it --local","db:migrate:remote":"wrangler d1 migrations apply ship-it --remote"},"dependencies":{"@ship-it/shared":"workspace:*","jose":"^6.2.12"},"devDependencies":{"wrangler":"^4.45.0"}}
+{
+  "name": "@ship-it/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "db:migrate:local": "wrangler d1 migrations apply ship-it --local",
+    "db:migrate:remote": "wrangler d1 migrations apply ship-it --remote"
+  },
+  "dependencies": {
+    "@ship-it/shared": "workspace:*",
+    "jose": "^6.2.12"
+  },
+  "devDependencies": {
+    "wrangler": "^4.45.0"
+  }
+}

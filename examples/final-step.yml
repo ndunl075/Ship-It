@@ -1,7 +1,7 @@
 # Template fragment for an existing successful deploy job, not a standalone workflow.
 # Your deploy step must expose a real GitHub deployment ID as deployment_id,
 # and attach a success status only after the actual production deployment succeeds.
-# Replace the Action revision and Worker origin before installation.
+# The Action is pinned to a tested revision; override api_url for self-hosting.
 permissions:
   contents: read
   id-token: write
@@ -10,8 +10,8 @@ steps:
   - name: Launch on Ship It
     if: ${{ success() && steps.deploy.outputs.deployment_id != '' }}
     continue-on-error: true
-    uses: ndunl075/Ship-It@REPLACE_WITH_TESTED_40_CHARACTER_COMMIT_SHA
+    uses: ndunl075/Ship-It@10b9f01ae16a6f73f193fb84000e9b430e1d8231
     with:
       deployment_id: ${{ steps.deploy.outputs.deployment_id }}
       environment: production
-      api_url: https://YOUR-WORKER.workers.dev
+      api_url: https://ship-it-api.coform.workers.dev

@@ -1,4 +1,13 @@
-import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  Component,
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { Launch, Project, World } from '@ship-it/shared';
 import { api, isDemo, isSandbox } from './api';
 import { advanceFlight, LaunchLedger, shareUrl, type FlightClock, type Stage } from './flight';
@@ -6,105 +15,915 @@ import { advanceFlight, LaunchLedger, shareUrl, type FlightClock, type Stage } f
 const Planet = lazy(() => import('./Planet'));
 const homeUrl = import.meta.env.BASE_URL + (isSandbox ? '?demo=1' : '');
 const emptyWorld: World = { projects: [], launches: [], nextCursor: null };
-function Icon({ name, size = 18 }: { name: 'rocket' | 'arrow' | 'search' | 'copy' | 'close' | 'github' | 'pause' | 'play'; size?: number }) {
-  const paths = { rocket: 'M12 3C8 6 7 10 7 15l5 3 5-3c0-5-1-9-5-12ZM7 10l-4 5v5l5-3m9-7 4 5v5l-5-3M10 21l2 2 2-2M12 9v2', arrow: 'M5 19 19 5M5 5h14v14', search: 'm16 16 5 5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0', copy: 'M9 9h12v12H9zM15 9V3H3v12h6', close: 'm6 6 12 12M6 18 18 6', github: 'M9 19c-4 1-4-2-6-2m12 5v-4c0-1 .1-2-1-3 3 0 6-1 6-5 0-1 0-3-1-4 0-1 0-2-.2-3-2 0-3 1-4 1-2-.5-4-.5-6 0-1 0-2-1-4-1-.2 1-.2 2 0 3-1 1-1 3-1 4 0 4 3 5 6 5-1 1-1 2-1 3v4', pause: 'M8 5v14M16 5v14', play: 'm8 4 12 8-12 8Z' };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]}/></svg>;
+function Icon({
+  name,
+  size = 18,
+}: {
+  name: 'rocket' | 'arrow' | 'search' | 'copy' | 'close' | 'github' | 'pause' | 'play';
+  size?: number;
+}) {
+  const paths = {
+    rocket:
+      'M12 3C8 6 7 10 7 15l5 3 5-3c0-5-1-9-5-12ZM7 10l-4 5v5l5-3m9-7 4 5v5l-5-3M10 21l2 2 2-2M12 9v2',
+    arrow: 'M5 19 19 5M5 5h14v14',
+    search: 'm16 16 5 5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
+    copy: 'M9 9h12v12H9zM15 9V3H3v12h6',
+    close: 'm6 6 12 12M6 18 18 6',
+    github:
+      'M9 19c-4 1-4-2-6-2m12 5v-4c0-1 .1-2-1-3 3 0 6-1 6-5 0-1 0-3-1-4 0-1 0-2-.2-3-2 0-3 1-4 1-2-.5-4-.5-6 0-1 0-2-1-4-1-.2 1-.2 2 0 3-1 1-1 3-1 4 0 4 3 5 6 5-1 1-1 2-1 3v4',
+    pause: 'M8 5v14M16 5v14',
+    play: 'm8 4 12 8-12 8Z',
+  };
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={paths[name]} />
+    </svg>
+  );
 }
-function relativeTime(value: string) { const minutes = Math.max(0, Math.floor((Date.now() - Date.parse(value)) / 60000)); return minutes < 1 ? 'just now' : minutes < 60 ? `${minutes}m ago` : minutes < 1440 ? `${Math.floor(minutes / 60)}h ago` : `${Math.floor(minutes / 1440)}d ago`; }
-function useVisible() { const [visible, setVisible] = useState(!document.hidden); useEffect(() => { const fn = () => setVisible(!document.hidden); document.addEventListener('visibilitychange', fn); return () => document.removeEventListener('visibilitychange', fn); }, []); return visible; }
-function useReducedMotion() { const [reduced, setReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches); useEffect(() => { const mq = matchMedia('(prefers-reduced-motion: reduce)'); const fn = () => setReduced(mq.matches); mq.addEventListener('change', fn); return () => mq.removeEventListener('change', fn); }, []); return reduced; }
-class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+function relativeTime(value: string) {
+  const minutes = Math.max(0, Math.floor((Date.now() - Date.parse(value)) / 60000));
+  return minutes < 1
+    ? 'just now'
+    : minutes < 60
+      ? `${minutes}m ago`
+      : minutes < 1440
+        ? `${Math.floor(minutes / 60)}h ago`
+        : `${Math.floor(minutes / 1440)}d ago`;
+}
+function useVisible() {
+  const [visible, setVisible] = useState(!document.hidden);
+  useEffect(() => {
+    const fn = () => setVisible(!document.hidden);
+    document.addEventListener('visibilitychange', fn);
+    return () => document.removeEventListener('visibilitychange', fn);
+  }, []);
+  return visible;
+}
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(
+    () => matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  useEffect(() => {
+    const mq = matchMedia('(prefers-reduced-motion: reduce)');
+    const fn = () => setReduced(mq.matches);
+    mq.addEventListener('change', fn);
+    return () => mq.removeEventListener('change', fn);
+  }, []);
+  return reduced;
+}
+class SceneBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
   state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
 }
-function Fallback({ loading = false }: { loading?: boolean }) { return <div className="planet-fallback"><div className="flat-planet"><span/><span/><span/></div><p>{loading ? 'A little world is coming into view…' : 'A quieter view of the planet.'}</p><small>{loading ? 'Preparing the 3D scene' : 'Explore every project in the directory below.'}</small></div>; }
+function Fallback({ loading = false }: { loading?: boolean }) {
+  return (
+    <div className="planet-fallback">
+      <div className="flat-planet">
+        <span />
+        <span />
+        <span />
+      </div>
+      <p>{loading ? 'A little world is coming into view…' : 'A quieter view of the planet.'}</p>
+      <small>
+        {loading ? 'Preparing the 3D scene' : 'Explore every project in the directory below.'}
+      </small>
+    </div>
+  );
+}
 function Setup({ close }: { close: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => { const previous = document.activeElement as HTMLElement; const modal = dialog.current; modal?.showModal(); return () => { modal?.close(); previous?.focus(); }; }, []);
-  const snippet = `name: Launch on Ship It\non:\n  deployment_status:\njobs:\n  launch:\n    if: >-\n      github.event.deployment_status.state == 'success' &&\n      github.event.deployment.environment == 'production'\n    runs-on: ubuntu-latest\n    continue-on-error: true\n    permissions:\n      contents: read\n      id-token: write\n    steps:\n      - uses: ndunl075/Ship-It@<RELEASE_COMMIT_SHA>\n        with:\n          deployment_id: \${{ github.event.deployment.id }}\n          api_url: https://ship-it-api.coform.workers.dev`;
-  return <dialog ref={dialog} className="setup-dialog" onCancel={close} onClick={e => { if (e.target === dialog.current) close(); }}><div className="dialog-inner"><button className="icon-button close" onClick={close} aria-label="Close setup"><Icon name="close"/></button><span className="eyebrow">YOUR NEXT LAUNCH STARTS HERE</span><h2>Make room for<br/>your next big idea.</h2><p>A successful production deploy. A rocket launch. Your own little spot on the planet.</p><ol className="setup-steps"><li><strong>Deploy a public GitHub repository</strong><span>Your provider must create a GitHub deployment record with a successful production status.</span></li><li><strong>Add the launch workflow</strong><span>Save the example as <code>.github/workflows/ship-it.yml</code>. Replace the release placeholder with a tested Action release commit. The official Worker URL is included.</span></li><li><strong>Ship something good</strong><span>Later deployments return to the same landing spot. No Ship It account or adopter API key.</span></li></ol><details><summary>View example GitHub Actions workflow</summary><pre>{snippet}</pre></details><p className="fine-print">This is a setup template. A published Action release and running API are required. GitHub deployment success proves provenance; it does not guarantee a site is safe or available.</p><a className="primary-button" href="https://github.com/ndunl075/Ship-It/blob/main/docs/SETUP.md" target="_blank" rel="noopener noreferrer">Read the full setup guide <Icon name="arrow"/></a></div></dialog>;
-}
-function ProjectDrawer({ project, close, replay, notify }: { project: Project; close: () => void; replay: (launch: Launch, project: Project) => void; notify: (message: string) => void }) {
-  const [history, setHistory] = useState<Launch[]>([]), [cursor, setCursor] = useState<string | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true);
   useEffect(() => {
-    const controller = new AbortController(); setLoading(true); setHistory([]); setError(''); setCursor(null);
-    api.history(project.githubRepositoryId, null, controller.signal).then(page => { setHistory(page.items); setCursor(page.nextCursor); }).catch(e => { if (!controller.signal.aborted) setError((e as Error).message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    const previous = document.activeElement as HTMLElement;
+    const modal = dialog.current;
+    modal?.showModal();
+    return () => {
+      modal?.close();
+      previous?.focus();
+    };
+  }, []);
+  const snippet = `name: Launch on Ship It\non:\n  deployment_status:\njobs:\n  launch:\n    if: >-\n      github.event.deployment_status.state == 'success' &&\n      github.event.deployment.environment == 'production'\n    runs-on: ubuntu-latest\n    continue-on-error: true\n    permissions:\n      contents: read\n      id-token: write\n    steps:\n      - uses: ndunl075/Ship-It@10b9f01ae16a6f73f193fb84000e9b430e1d8231\n        with:\n          deployment_id: \${{ github.event.deployment.id }}\n          api_url: https://ship-it-api.coform.workers.dev`;
+  return (
+    <dialog
+      ref={dialog}
+      className="setup-dialog"
+      onCancel={close}
+      onClick={(e) => {
+        if (e.target === dialog.current) close();
+      }}
+    >
+      <div className="dialog-inner">
+        <button className="icon-button close" onClick={close} aria-label="Close setup">
+          <Icon name="close" />
+        </button>
+        <span className="eyebrow">YOUR NEXT LAUNCH STARTS HERE</span>
+        <h2>
+          Make room for
+          <br />
+          your next big idea.
+        </h2>
+        <p>A successful production deploy. A rocket launch. Your own little spot on the planet.</p>
+        <ol className="setup-steps">
+          <li>
+            <strong>Deploy a public GitHub repository</strong>
+            <span>
+              Your provider must create a GitHub deployment record with a successful production
+              status.
+            </span>
+          </li>
+          <li>
+            <strong>Add the launch workflow</strong>
+            <span>
+              Save the example as <code>.github/workflows/ship-it.yml</code>. The example pins the
+              tested Action commit and connects to the official Ship It API.
+            </span>
+          </li>
+          <li>
+            <strong>Ship something good</strong>
+            <span>
+              Later deployments return to the same landing spot. No Ship It account or adopter API
+              key.
+            </span>
+          </li>
+        </ol>
+        <details>
+          <summary>View example GitHub Actions workflow</summary>
+          <pre>{snippet}</pre>
+        </details>
+        <p className="fine-print">
+          Ship It verifies successful production GitHub deployments from public repositories. GitHub
+          deployment success proves provenance; it does not guarantee a site is safe or available.
+        </p>
+        <a
+          className="primary-button"
+          href="https://github.com/ndunl075/Ship-It/blob/main/docs/SETUP.md"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Read the full setup guide <Icon name="arrow" />
+        </a>
+      </div>
+    </dialog>
+  );
+}
+function ProjectDrawer({
+  project,
+  close,
+  replay,
+  notify,
+}: {
+  project: Project;
+  close: () => void;
+  replay: (launch: Launch, project: Project) => void;
+  notify: (message: string) => void;
+}) {
+  const [history, setHistory] = useState<Launch[]>([]),
+    [cursor, setCursor] = useState<string | null>(null),
+    [error, setError] = useState(''),
+    [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setHistory([]);
+    setError('');
+    setCursor(null);
+    api
+      .history(project.githubRepositoryId, null, controller.signal)
+      .then((page) => {
+        setHistory(page.items);
+        setCursor(page.nextCursor);
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
     return () => controller.abort();
   }, [project.githubRepositoryId]);
-  async function more() { setLoading(true); try { const page = await api.history(project.githubRepositoryId, cursor); setHistory(old => [...old, ...page.items]); setCursor(page.nextCursor); setError(''); } catch (e) { setError((e as Error).message); } finally { setLoading(false); } }
-  async function copy(kind: 'project' | 'launch', id: string) { try { await navigator.clipboard.writeText(shareUrl(kind, id)); notify('Link copied. Send a little inspiration.'); } catch { notify('Could not copy automatically. Copy the URL from your address bar.'); } }
-  return <aside className="project-drawer" aria-label={`${project.name} project details`}><div className="drawer-heading"><span className="eyebrow">LANDING SITE / {String(project.githubRepositoryId).slice(-4)}</span><button className="icon-button" onClick={close} aria-label="Close project details"><Icon name="close"/></button></div><div className="project-emblem"><Icon name="rocket" size={30}/><span>EST. {new Date(project.latestLaunchedAt).getFullYear()}</span></div><h2>{project.name}</h2><p className="owner">{project.owner} / {project.repository}</p><p className="project-description">{project.description || 'A new idea has found its place on the planet.'}</p><div className="project-badge"><span className="status-dot"/>{isDemo ? 'SIMULATED PROJECT' : 'GitHub deployment success'}</div>{!isDemo && <p className="fine-print">GitHub reported a successful deployment. This is not an uptime or safety guarantee.</p>}<div className="project-metrics"><div><strong>{project.launchCount}</strong><span>launches</span></div><div><strong>{relativeTime(project.latestLaunchedAt)}</strong><span>last arrival</span></div></div><div className="project-links">{!isDemo && <a href={project.repoUrl} target="_blank" rel="noopener noreferrer"><Icon name="github"/>Repository <Icon name="arrow" size={14}/></a>}{project.homepageUrl && <a href={project.homepageUrl} target="_blank" rel="noopener noreferrer">Visit site <Icon name="arrow" size={14}/></a>}<button onClick={() => void copy('project', project.id)}><Icon name="copy" size={15}/>Copy link</button></div><p className="fine-print">{isDemo ? 'An invented project in the local demo. Nothing is published.' : 'External links open websites supplied by project owners.'}</p><div className="history-title"><span className="eyebrow">FLIGHT HISTORY</span><span>↓</span></div>{error && <p role="alert" className="inline-error">{error}<button onClick={() => void more()}>Retry</button></p>}<ol className="history">{history.map(launch => <li key={launch.id}><span className="history-dot"/><div><strong>{isDemo ? 'Simulated arrival' : 'Production deployed'}</strong><small><code>{launch.commitSha.slice(0, 7)}</code> · {relativeTime(launch.deployedAt)}</small></div><button className="icon-button" aria-label={`Replay launch ${launch.id}`} onClick={() => replay(launch, project)}><Icon name="play" size={14}/></button><button className="icon-button" aria-label={`Copy link to launch ${launch.id}`} onClick={() => void copy('launch', launch.id)}><Icon name="copy" size={14}/></button></li>)}</ol>{loading && <p className="fine-print" role="status">Loading flight history…</p>}{!loading && !history.length && !error && <p className="fine-print">The first flight is still ahead.</p>}{cursor && <button className="text-button" disabled={loading} onClick={() => void more()}>Earlier launches ↓</button>}</aside>;
+  async function more() {
+    setLoading(true);
+    try {
+      const page = await api.history(project.githubRepositoryId, cursor);
+      setHistory((old) => [...old, ...page.items]);
+      setCursor(page.nextCursor);
+      setError('');
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function copy(kind: 'project' | 'launch', id: string) {
+    try {
+      await navigator.clipboard.writeText(shareUrl(kind, id));
+      notify('Link copied. Send a little inspiration.');
+    } catch {
+      notify('Could not copy automatically. Copy the URL from your address bar.');
+    }
+  }
+  return (
+    <aside className="project-drawer" aria-label={`${project.name} project details`}>
+      <div className="drawer-heading">
+        <span className="eyebrow">
+          LANDING SITE / {String(project.githubRepositoryId).slice(-4)}
+        </span>
+        <button className="icon-button" onClick={close} aria-label="Close project details">
+          <Icon name="close" />
+        </button>
+      </div>
+      <div className="project-emblem">
+        <Icon name="rocket" size={30} />
+        <span>EST. {new Date(project.latestLaunchedAt).getFullYear()}</span>
+      </div>
+      <h2>{project.name}</h2>
+      <p className="owner">
+        {project.owner} / {project.repository}
+      </p>
+      <p className="project-description">
+        {project.description || 'A new idea has found its place on the planet.'}
+      </p>
+      <div className="project-badge">
+        <span className="status-dot" />
+        {isDemo ? 'SIMULATED PROJECT' : 'GitHub deployment success'}
+      </div>
+      {!isDemo && (
+        <p className="fine-print">
+          GitHub reported a successful deployment. This is not an uptime or safety guarantee.
+        </p>
+      )}
+      <div className="project-metrics">
+        <div>
+          <strong>{project.launchCount}</strong>
+          <span>launches</span>
+        </div>
+        <div>
+          <strong>{relativeTime(project.latestLaunchedAt)}</strong>
+          <span>last arrival</span>
+        </div>
+      </div>
+      <div className="project-links">
+        {!isDemo && (
+          <a href={project.repoUrl} target="_blank" rel="noopener noreferrer">
+            <Icon name="github" />
+            Repository <Icon name="arrow" size={14} />
+          </a>
+        )}
+        {project.homepageUrl && (
+          <a href={project.homepageUrl} target="_blank" rel="noopener noreferrer">
+            Visit site <Icon name="arrow" size={14} />
+          </a>
+        )}
+        <button onClick={() => void copy('project', project.id)}>
+          <Icon name="copy" size={15} />
+          Copy link
+        </button>
+      </div>
+      <p className="fine-print">
+        {isDemo
+          ? 'An invented project in the local demo. Nothing is published.'
+          : 'External links open websites supplied by project owners.'}
+      </p>
+      <div className="history-title">
+        <span className="eyebrow">FLIGHT HISTORY</span>
+        <span>↓</span>
+      </div>
+      {error && (
+        <p role="alert" className="inline-error">
+          {error}
+          <button onClick={() => void more()}>Retry</button>
+        </p>
+      )}
+      <ol className="history">
+        {history.map((launch) => (
+          <li key={launch.id}>
+            <span className="history-dot" />
+            <div>
+              <strong>{isDemo ? 'Simulated arrival' : 'Production deployed'}</strong>
+              <small>
+                <code>{launch.commitSha.slice(0, 7)}</code> · {relativeTime(launch.deployedAt)}
+              </small>
+            </div>
+            <button
+              className="icon-button"
+              aria-label={`Replay launch ${launch.id}`}
+              onClick={() => replay(launch, project)}
+            >
+              <Icon name="play" size={14} />
+            </button>
+            <button
+              className="icon-button"
+              aria-label={`Copy link to launch ${launch.id}`}
+              onClick={() => void copy('launch', launch.id)}
+            >
+              <Icon name="copy" size={14} />
+            </button>
+          </li>
+        ))}
+      </ol>
+      {loading && (
+        <p className="fine-print" role="status">
+          Loading flight history…
+        </p>
+      )}
+      {!loading && !history.length && !error && (
+        <p className="fine-print">The first flight is still ahead.</p>
+      )}
+      {cursor && (
+        <button className="text-button" disabled={loading} onClick={() => void more()}>
+          Earlier launches ↓
+        </button>
+      )}
+    </aside>
+  );
 }
 
 export default function App() {
-  const [world, setWorld] = useState<World>(emptyWorld), [loading, setLoading] = useState(true), [error, setError] = useState(''), [retry, setRetry] = useState(0);
-  const [selected, setSelected] = useState<Project | null>(null), [setup, setSetup] = useState(false), [query, setQuery] = useState(''), [projects, setProjects] = useState<Project[]>([]), [projectCursor, setProjectCursor] = useState<string | null>(null), [directoryLoading, setDirectoryLoading] = useState(true), [directoryError, setDirectoryError] = useState('');
-  const [motion, setMotion] = useState(true), [rotate, setRotate] = useState(true), [fallback, setFallback] = useState(false), [toast, setToast] = useState('');
-  const [flight, setFlight] = useState<{ project: Project; key: number } | null>(null), [stage, setStage] = useState<Stage>('Settled');
-  const clock = useRef<FlightClock>({ elapsed: 12500, stage: 'Settled' }), ledger = useRef(new LaunchLedger()), sequence = useRef(0), selectedRef = useRef(selected), directoryRequest = useRef(0);
-  const visible = useVisible(), reduced = useReducedMotion(), running = motion && !reduced && visible;
+  const [world, setWorld] = useState<World>(emptyWorld),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState(''),
+    [retry, setRetry] = useState(0);
+  const [selected, setSelected] = useState<Project | null>(null),
+    [setup, setSetup] = useState(false),
+    [query, setQuery] = useState(''),
+    [projects, setProjects] = useState<Project[]>([]),
+    [projectCursor, setProjectCursor] = useState<string | null>(null),
+    [directoryLoading, setDirectoryLoading] = useState(true),
+    [directoryError, setDirectoryError] = useState('');
+  const [motion, setMotion] = useState(true),
+    [rotate, setRotate] = useState(true),
+    [fallback, setFallback] = useState(false),
+    [toast, setToast] = useState('');
+  const [flight, setFlight] = useState<{ project: Project; key: number } | null>(null),
+    [stage, setStage] = useState<Stage>('Settled');
+  const clock = useRef<FlightClock>({ elapsed: 12500, stage: 'Settled' }),
+    ledger = useRef(new LaunchLedger()),
+    sequence = useRef(0),
+    selectedRef = useRef(selected),
+    directoryRequest = useRef(0);
+  const visible = useVisible(),
+    reduced = useReducedMotion(),
+    running = motion && !reduced && visible;
   selectedRef.current = selected;
   const notify = useCallback((message: string) => setToast(message), []);
-  useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 4500); return () => clearTimeout(timer); }, [toast]);
-  const play = useCallback((launch: Launch, project: Project, navigate = true) => {
-    if (navigate) { history.pushState({}, '', shareUrl('launch', launch.id)); setSelected(project); }
-    clock.current = { elapsed: 0, stage: 'Queued' }; setStage('Queued'); setFlight({ project, key: ++sequence.current });
-  }, []);
-  const select = useCallback((project: Project) => { setSelected(project); history.pushState({}, '', shareUrl('project', project.id)); }, []);
   useEffect(() => {
-    const controller = new AbortController(); setLoading(true); setError('');
-    api.world(controller.signal).then(value => { setWorld(value); ledger.current.seed(value.launches.map(l => l.id)); }).catch(e => { if (!controller.signal.aborted) setError((e as Error).message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(''), 4500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+  const play = useCallback((launch: Launch, project: Project, navigate = true) => {
+    if (navigate) {
+      history.pushState({}, '', shareUrl('launch', launch.id));
+      setSelected(project);
+    }
+    clock.current = { elapsed: 0, stage: 'Queued' };
+    setStage('Queued');
+    setFlight({ project, key: ++sequence.current });
+  }, []);
+  const select = useCallback((project: Project) => {
+    setSelected(project);
+    history.pushState({}, '', shareUrl('project', project.id));
+  }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError('');
+    api
+      .world(controller.signal)
+      .then((value) => {
+        setWorld(value);
+        ledger.current.seed(value.launches.map((l) => l.id));
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
     return () => controller.abort();
   }, [retry]);
   useEffect(() => {
     let controller: AbortController;
     const route = async () => {
-      controller?.abort(); controller = new AbortController(); const params = new URLSearchParams(location.search), launchId = params.get('launch'), projectId = params.get('project');
+      controller?.abort();
+      controller = new AbortController();
+      const params = new URLSearchParams(location.search),
+        launchId = params.get('launch'),
+        projectId = params.get('project');
       try {
-        if (launchId) { const detail = await api.launch(launchId, controller.signal); if (!controller.signal.aborted) { setSelected(detail.project); play(detail.launch, detail.project, false); } }
-        else if (projectId) { const project = await api.project(projectId, controller.signal); if (!controller.signal.aborted) setSelected(project); }
-        else setSelected(null);
-      } catch (e) { if (!controller.signal.aborted) notify((e as Error).message); }
+        if (launchId) {
+          const detail = await api.launch(launchId, controller.signal);
+          if (!controller.signal.aborted) {
+            setSelected(detail.project);
+            play(detail.launch, detail.project, false);
+          }
+        } else if (projectId) {
+          const project = await api.project(projectId, controller.signal);
+          if (!controller.signal.aborted) setSelected(project);
+        } else setSelected(null);
+      } catch (e) {
+        if (!controller.signal.aborted) notify((e as Error).message);
+      }
     };
-    void route(); window.addEventListener('popstate', route); return () => { controller?.abort(); window.removeEventListener('popstate', route); };
+    void route();
+    window.addEventListener('popstate', route);
+    return () => {
+      controller?.abort();
+      window.removeEventListener('popstate', route);
+    };
   }, [play, notify]);
   useEffect(() => {
     if (!flight) return;
-    if (reduced || !motion) { clock.current = advanceFlight(clock.current, 0, false, true); setStage('Settled'); setFlight(null); return; }
+    if (reduced || !motion) {
+      clock.current = advanceFlight(clock.current, 0, false, true);
+      setStage('Settled');
+      setFlight(null);
+      return;
+    }
     if (!visible) return;
-    let frame = 0, previous = performance.now();
-    const tick = (now: number) => { const next = advanceFlight(clock.current, now - previous, false, false); previous = now; if (next.stage !== clock.current.stage) setStage(next.stage); clock.current = next; if (next.stage === 'Settled') { setFlight(null); return; } frame = requestAnimationFrame(tick); };
-    frame = requestAnimationFrame(tick); return () => cancelAnimationFrame(frame);
+    let frame = 0,
+      previous = performance.now();
+    const tick = (now: number) => {
+      const next = advanceFlight(clock.current, now - previous, false, false);
+      previous = now;
+      if (next.stage !== clock.current.stage) setStage(next.stage);
+      clock.current = next;
+      if (next.stage === 'Settled') {
+        setFlight(null);
+        return;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
   }, [flight, reduced, motion, visible]);
   useEffect(() => {
     if (!visible || isDemo) return;
     const controller = new AbortController();
-    const poll = async () => { try { const page = await api.launches(null, controller.signal); if (controller.signal.aborted) return; const fresh = page.items.filter(l => ledger.current.accept(l.id)); if (!fresh.length) return; const latest = await api.world(controller.signal); setWorld(latest); const target = latest.projects.find(p => p.id === fresh[0].projectId); if (target && !selectedRef.current) play(fresh[0], target, false); } catch { if (!controller.signal.aborted) notify('Live updates are reconnecting. Your current view is still available.'); } };
-    const timer = setInterval(() => void poll(), 45000); return () => { clearInterval(timer); controller.abort(); };
+    const poll = async () => {
+      try {
+        const page = await api.launches(null, controller.signal);
+        if (controller.signal.aborted) return;
+        const fresh = page.items.filter((l) => ledger.current.accept(l.id));
+        if (!fresh.length) return;
+        const latest = await api.world(controller.signal);
+        setWorld(latest);
+        const target = latest.projects.find((p) => p.id === fresh[0].projectId);
+        if (target && !selectedRef.current) play(fresh[0], target, false);
+      } catch {
+        if (!controller.signal.aborted)
+          notify('Live updates are reconnecting. Your current view is still available.');
+      }
+    };
+    const timer = setInterval(() => void poll(), 45000);
+    return () => {
+      clearInterval(timer);
+      controller.abort();
+    };
   }, [visible, play, notify]);
   useEffect(() => {
-    const controller = new AbortController(), request = ++directoryRequest.current; setDirectoryLoading(true); setDirectoryError('');
-    const timer = setTimeout(() => { api.projects(query, null, controller.signal).then(page => { if (request !== directoryRequest.current) return; setProjects(page.items); setProjectCursor(page.nextCursor); }).catch(e => { if (!controller.signal.aborted) setDirectoryError((e as Error).message); }).finally(() => { if (!controller.signal.aborted) setDirectoryLoading(false); }); }, 180);
-    return () => { clearTimeout(timer); controller.abort(); };
+    const controller = new AbortController(),
+      request = ++directoryRequest.current;
+    setDirectoryLoading(true);
+    setDirectoryError('');
+    const timer = setTimeout(() => {
+      api
+        .projects(query, null, controller.signal)
+        .then((page) => {
+          if (request !== directoryRequest.current) return;
+          setProjects(page.items);
+          setProjectCursor(page.nextCursor);
+        })
+        .catch((e) => {
+          if (!controller.signal.aborted) setDirectoryError((e as Error).message);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setDirectoryLoading(false);
+        });
+    }, 180);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query, retry]);
-  async function moreProjects() { const request = directoryRequest.current; setDirectoryLoading(true); try { const page = await api.projects(query, projectCursor); if (request !== directoryRequest.current) return; setProjects(old => [...old, ...page.items]); setProjectCursor(page.nextCursor); } catch (e) { if (request === directoryRequest.current) setDirectoryError((e as Error).message); } finally { if (request === directoryRequest.current) setDirectoryLoading(false); } }
-  async function moreWorld() { try { const page = await api.world(undefined, world.nextCursor); setWorld(old => ({ ...old, projects: [...new Map([...old.projects, ...page.projects].map(p => [p.id, p])).values()], nextCursor: page.nextCursor })); } catch (e) { notify((e as Error).message); } }
-  async function replayFeed(launch: Launch) { const project = world.projects.find(p => p.id === launch.projectId); if (project) play(launch, project); else { try { const detail = await api.launch(launch.id); play(detail.launch, detail.project); } catch (e) { notify((e as Error).message); } } }
-  async function demoFlight() { if (isDemo && world.launches.length) { const launch = world.launches[sequence.current % world.launches.length]; await replayFeed(launch); } else { location.assign(import.meta.env.BASE_URL + '?demo=1&launch=sim-0-0'); } }
+  async function moreProjects() {
+    const request = directoryRequest.current;
+    setDirectoryLoading(true);
+    try {
+      const page = await api.projects(query, projectCursor);
+      if (request !== directoryRequest.current) return;
+      setProjects((old) => [...old, ...page.items]);
+      setProjectCursor(page.nextCursor);
+    } catch (e) {
+      if (request === directoryRequest.current) setDirectoryError((e as Error).message);
+    } finally {
+      if (request === directoryRequest.current) setDirectoryLoading(false);
+    }
+  }
+  async function moreWorld() {
+    try {
+      const page = await api.world(undefined, world.nextCursor);
+      setWorld((old) => ({
+        ...old,
+        projects: [...new Map([...old.projects, ...page.projects].map((p) => [p.id, p])).values()],
+        nextCursor: page.nextCursor,
+      }));
+    } catch (e) {
+      notify((e as Error).message);
+    }
+  }
+  async function replayFeed(launch: Launch) {
+    const project = world.projects.find((p) => p.id === launch.projectId);
+    if (project) play(launch, project);
+    else {
+      try {
+        const detail = await api.launch(launch.id);
+        play(detail.launch, detail.project);
+      } catch (e) {
+        notify((e as Error).message);
+      }
+    }
+  }
+  async function demoFlight() {
+    if (isDemo && world.launches.length) {
+      const launch = world.launches[sequence.current % world.launches.length];
+      await replayFeed(launch);
+    } else {
+      location.assign(import.meta.env.BASE_URL + '?demo=1&launch=sim-0-0');
+    }
+  }
   const total = world.projects.reduce((sum, p) => sum + p.launchCount, 0);
-  return <><a className="skip-link" href="#explore">Skip to project directory</a><div className="site-shell"><header className="header"><a className="brand" href={homeUrl} aria-label="Ship It home"><span className="brand-mark"><Icon name="rocket" size={22}/></span>ship<span className="brand-it">it</span><span className="brand-period">.</span></a><nav aria-label="Main navigation"><a href="#explore">Explore the planet</a>{isSandbox && <a className="exit-sandbox" href={import.meta.env.BASE_URL}>Exit sandbox ↗</a>}<a className="github-nav" href="https://github.com/ndunl075/Ship-It" target="_blank" rel="noopener noreferrer"><Icon name="github" size={16}/>GitHub <Icon name="arrow" size={12}/></a><button className="add-button" onClick={() => setSetup(true)}>Add your project <span>+</span></button></nav></header>
-    <main><section className={`mission ${selected ? 'has-selection' : ''}`} aria-label="Interactive deployment planet"><div className="scene" aria-label="Interactive 3D planet. Drag to orbit, scroll to zoom; use the directory to select projects with a keyboard."><SceneBoundary fallback={<Fallback/>}>{fallback ? <Fallback/> : <Suspense fallback={<Fallback loading/>}><Planet projects={selected && !world.projects.some(p => p.id === selected.id) ? [...world.projects, selected] : world.projects} selected={selected} onSelect={select} flight={flight} clock={clock} running={running} rotate={rotate} visible={visible} onFailure={() => setFallback(true)}/></Suspense>}</SceneBoundary></div>
-      <div className="intro"><div className="intro-kicker"><span className="status-dot"/>{isDemo ? 'A SHARED PLANET · DEMO WORLD' : 'A SHARED PLANET FOR BUILDERS'}</div><h1>Small ships.<br/><em>Big universe.</em></h1><p>Every project starts somewhere.<br/>Every launch deserves a little celebration.</p><div className="intro-actions"><button className="primary-button" onClick={() => setSetup(true)}>Find your place <Icon name="arrow" size={17}/></button><a href="#explore">Take a look around <span>↓</span></a></div><p className="tiny-caption">BUILT FOR THE THINGS YOU BUILD.</p></div>
-      {!selected && <div className="world-coordinate" aria-hidden="true"><span>WORLD 001</span><strong>A work in progress.<br/>Just like all of us.</strong><span className="coordinate-line"/><small>ONE PLANET. ENDLESS POSSIBILITIES.</small></div>}
-      <div className="flight-log"><div className="feed-heading"><span className="eyebrow">RECENT ARRIVALS</span><span className="feed-status">{isDemo ? 'SIMULATED' : 'LIVE'}<span className="status-dot"/></span></div>{loading ? <p className="feed-empty" role="status">Checking the flight log…</p> : error ? <div className="feed-empty inline-error" role="alert">{error}<button onClick={() => setRetry(n => n + 1)}>Reconnect ↻</button></div> : !world.launches.length ? <div className="feed-empty">The sky is quiet. Your project could be the first.<button onClick={() => setSetup(true)}>Prepare a launch ↗</button></div> : <ol>{world.launches.slice(0, 3).map((launch, i) => { const project = world.projects.find(p => p.id === launch.projectId); return <li key={launch.id}><button onClick={() => void replayFeed(launch)}><span className={`feed-icon color-${i}`}><Icon name="rocket" size={16}/></span><span className="feed-project"><strong>{project?.name || 'New project'}</strong><small>{project ? `${project.owner} / ${project.repository}` : 'View launch details'}</small></span><span className="feed-time">{relativeTime(launch.deployedAt)}<span>↗</span></span></button></li>; })}</ol>}<a className="feed-footer" href="#explore">There’s good stuff landing here. <span>Explore all ↗</span></a></div>
-      {selected && <ProjectDrawer key={selected.id} project={selected} close={() => { setSelected(null); history.pushState({}, '', homeUrl); }} replay={play} notify={notify}/>}
-      <div className="planet-caption"><span className="crosshair">+</span><span>YOUR LITTLE CORNER OF THE INTERNET</span><span className="crosshair">+</span></div>
-      <div className="scene-controls"><button className="icon-button" aria-label={rotate ? 'Pause planet rotation' : 'Resume planet rotation'} aria-pressed={!rotate} onClick={() => setRotate(v => !v)}><Icon name={rotate ? 'pause' : 'play'} size={14}/></button><span>Drag to explore <i>·</i> Scroll to zoom</span><button className="motion-toggle" aria-pressed={!motion || reduced} onClick={() => setMotion(v => !v)} disabled={reduced}>{reduced ? 'Reduced motion' : motion ? 'Motion on' : 'Motion off'}</button></div>
-      <div className="demo-control"><span className="demo-status"><span className="status-dot"/>{flight ? stage === 'LiftOff' ? 'LIFT OFF' : stage.toUpperCase() : isDemo ? 'SIMULATION READY' : 'READY FOR ARRIVALS'}</span><button onClick={() => void demoFlight()} disabled={!!flight || (isDemo && !world.launches.length)}><Icon name="rocket" size={17}/>{flight ? 'A little idea is on its way…' : 'Try a launch'}<span>↗</span></button><small>{isDemo ? 'Just for fun. Nothing gets published.' : 'Try a local simulation. Nothing gets published.'}</small></div>
-    </section>
-    <section className="world-strip" aria-label="Planet statistics"><div><span className="strip-symbol">✳</span><p>A little planet.<br/><strong>A lot of possibility.</strong></p></div><div className="stat"><strong>{loading ? '—' : world.projects.length}<span>{world.nextCursor ? '+' : ''}</span></strong><span>{isDemo ? 'imaginary projects' : 'projects in view'}</span></div><div className="stat"><strong>{loading ? '—' : total}</strong><span>{isDemo ? 'simulated launches' : 'launches across these sites'}</span></div><div className="strip-note"><span>OPEN SOURCE. OPEN UNIVERSE.</span><p>Made for the joy of shipping.</p></div></section>
-    <section className="directory" id="explore" aria-labelledby="directory-title"><div className="directory-top"><div><span className="eyebrow">GOOD IDEAS FIND GOOD COMPANY</span><h2 id="directory-title">Meet the neighborhood.</h2><p>{isDemo ? 'A few imaginary projects to help you explore the possibilities.' : 'Discover the projects making their home on the planet.'}</p></div><label className="search-box"><Icon name="search" size={18}/><span className="sr-only">Search projects or GitHub owners</span><input type="search" placeholder="Find a project or builder…" value={query} onChange={e => setQuery(e.target.value)}/></label></div>{directoryError && <div className="directory-state" role="alert">{directoryError}<button className="text-button" onClick={() => setRetry(n => n + 1)}>Try again</button></div>}<div className="directory-grid" aria-busy={directoryLoading}>{projects.map((project, i) => <button className="directory-project" key={project.id} onClick={() => { select(project); document.querySelector('.mission')?.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth' }); }}><span className={`project-number color-${i % 3}`}>{String(i + 1).padStart(2, '0')}</span><span><strong>{project.name}</strong><small>by {project.owner}</small><p>{project.description}</p><span className="directory-count">{project.launchCount} {isDemo ? 'simulated launches' : 'launches'} <span>↗</span></span></span></button>)}</div>{directoryLoading && <p className="directory-state" role="status">Looking around the neighborhood…</p>}{!directoryLoading && !projects.length && !directoryError && <div className="directory-state">{query ? 'No landing sites match that search. Try a project name or GitHub owner.' : 'There’s room for the first arrival. Add your project to get started.'}</div>}{projectCursor && <button className="load-more" disabled={directoryLoading} onClick={() => void moreProjects()}>Explore more projects ↓</button>}{world.nextCursor && <button className="text-button" onClick={() => void moreWorld()}>Load more landing sites on the planet</button>}</section>
-    </main><footer><a className="brand small" href={homeUrl}>shipit.</a><p>Big things start with a little ship.</p><span>{isDemo ? 'LOCAL DEMO · NO REAL DEPLOYMENTS' : 'PUBLIC PROJECTS · VERIFIED GITHUB PROVENANCE'}</span></footer></div>{setup && <Setup close={() => setSetup(false)}/>}<div className={`toast ${toast ? 'shown' : ''}`} role="status" aria-live="polite">{toast}</div><span className="sr-only" role="status" aria-live="polite">{flight ? `${isDemo ? 'Simulated' : 'Deployment'} launch for ${flight.project.name}: ${stage}` : ''}</span></>;
+  return (
+    <>
+      <a className="skip-link" href="#explore">
+        Skip to project directory
+      </a>
+      <div className="site-shell">
+        <header className="header">
+          <a className="brand" href={homeUrl} aria-label="Ship It home">
+            <span className="brand-mark">
+              <Icon name="rocket" size={22} />
+            </span>
+            ship<span className="brand-it">it</span>
+            <span className="brand-period">.</span>
+          </a>
+          <nav aria-label="Main navigation">
+            <a href="#explore">Explore the planet</a>
+            {isSandbox && (
+              <a className="exit-sandbox" href={import.meta.env.BASE_URL}>
+                Exit sandbox ↗
+              </a>
+            )}
+            <a
+              className="github-nav"
+              href="https://github.com/ndunl075/Ship-It"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Icon name="github" size={16} />
+              GitHub <Icon name="arrow" size={12} />
+            </a>
+            <button className="add-button" onClick={() => setSetup(true)}>
+              Add your project <span>+</span>
+            </button>
+          </nav>
+        </header>
+        <main>
+          <section
+            className={`mission ${selected ? 'has-selection' : ''}`}
+            aria-label="Interactive deployment planet"
+          >
+            <div
+              className="scene"
+              aria-label="Interactive 3D planet. Drag to orbit, scroll to zoom; use the directory to select projects with a keyboard."
+            >
+              <SceneBoundary fallback={<Fallback />}>
+                {fallback ? (
+                  <Fallback />
+                ) : (
+                  <Suspense fallback={<Fallback loading />}>
+                    <Planet
+                      projects={
+                        selected && !world.projects.some((p) => p.id === selected.id)
+                          ? [...world.projects, selected]
+                          : world.projects
+                      }
+                      selected={selected}
+                      onSelect={select}
+                      flight={flight}
+                      clock={clock}
+                      running={running}
+                      rotate={rotate}
+                      visible={visible}
+                      onFailure={() => setFallback(true)}
+                    />
+                  </Suspense>
+                )}
+              </SceneBoundary>
+            </div>
+            <div className="intro">
+              <div className="intro-kicker">
+                <span className="status-dot" />
+                {isDemo ? 'A SHARED PLANET · DEMO WORLD' : 'A SHARED PLANET FOR BUILDERS'}
+              </div>
+              <h1>
+                Small ships.
+                <br />
+                <em>Big universe.</em>
+              </h1>
+              <p>
+                Every project starts somewhere.
+                <br />
+                Every launch deserves a little celebration.
+              </p>
+              <div className="intro-actions">
+                <button className="primary-button" onClick={() => setSetup(true)}>
+                  Find your place <Icon name="arrow" size={17} />
+                </button>
+                <a href="#explore">
+                  Take a look around <span>↓</span>
+                </a>
+              </div>
+              <p className="tiny-caption">BUILT FOR THE THINGS YOU BUILD.</p>
+            </div>
+            {!selected && (
+              <div className="world-coordinate" aria-hidden="true">
+                <span>WORLD 001</span>
+                <strong>
+                  A work in progress.
+                  <br />
+                  Just like all of us.
+                </strong>
+                <span className="coordinate-line" />
+                <small>ONE PLANET. ENDLESS POSSIBILITIES.</small>
+              </div>
+            )}
+            <div className="flight-log">
+              <div className="feed-heading">
+                <span className="eyebrow">RECENT ARRIVALS</span>
+                <span className="feed-status">
+                  {isDemo ? 'SIMULATED' : 'LIVE'}
+                  <span className="status-dot" />
+                </span>
+              </div>
+              {loading ? (
+                <p className="feed-empty" role="status">
+                  Checking the flight log…
+                </p>
+              ) : error ? (
+                <div className="feed-empty inline-error" role="alert">
+                  {error}
+                  <button onClick={() => setRetry((n) => n + 1)}>Reconnect ↻</button>
+                </div>
+              ) : !world.launches.length ? (
+                <div className="feed-empty">
+                  The sky is quiet. Your project could be the first.
+                  <button onClick={() => setSetup(true)}>Prepare a launch ↗</button>
+                </div>
+              ) : (
+                <ol>
+                  {world.launches.slice(0, 3).map((launch, i) => {
+                    const project = world.projects.find((p) => p.id === launch.projectId);
+                    return (
+                      <li key={launch.id}>
+                        <button onClick={() => void replayFeed(launch)}>
+                          <span className={`feed-icon color-${i}`}>
+                            <Icon name="rocket" size={16} />
+                          </span>
+                          <span className="feed-project">
+                            <strong>{project?.name || 'New project'}</strong>
+                            <small>
+                              {project
+                                ? `${project.owner} / ${project.repository}`
+                                : 'View launch details'}
+                            </small>
+                          </span>
+                          <span className="feed-time">
+                            {relativeTime(launch.deployedAt)}
+                            <span>↗</span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+              <a className="feed-footer" href="#explore">
+                There’s good stuff landing here. <span>Explore all ↗</span>
+              </a>
+            </div>
+            {selected && (
+              <ProjectDrawer
+                key={selected.id}
+                project={selected}
+                close={() => {
+                  setSelected(null);
+                  history.pushState({}, '', homeUrl);
+                }}
+                replay={play}
+                notify={notify}
+              />
+            )}
+            <div className="planet-caption">
+              <span className="crosshair">+</span>
+              <span>YOUR LITTLE CORNER OF THE INTERNET</span>
+              <span className="crosshair">+</span>
+            </div>
+            <div className="scene-controls">
+              <button
+                className="icon-button"
+                aria-label={rotate ? 'Pause planet rotation' : 'Resume planet rotation'}
+                aria-pressed={!rotate}
+                onClick={() => setRotate((v) => !v)}
+              >
+                <Icon name={rotate ? 'pause' : 'play'} size={14} />
+              </button>
+              <span>
+                Drag to explore <i>·</i> Scroll to zoom
+              </span>
+              <button
+                className="motion-toggle"
+                aria-pressed={!motion || reduced}
+                onClick={() => setMotion((v) => !v)}
+                disabled={reduced}
+              >
+                {reduced ? 'Reduced motion' : motion ? 'Motion on' : 'Motion off'}
+              </button>
+            </div>
+            <div className="demo-control">
+              <span className="demo-status">
+                <span className="status-dot" />
+                {flight
+                  ? stage === 'LiftOff'
+                    ? 'LIFT OFF'
+                    : stage.toUpperCase()
+                  : isDemo
+                    ? 'SIMULATION READY'
+                    : 'READY FOR ARRIVALS'}
+              </span>
+              <button
+                onClick={() => void demoFlight()}
+                disabled={!!flight || (isDemo && !world.launches.length)}
+              >
+                <Icon name="rocket" size={17} />
+                {flight ? 'A little idea is on its way…' : 'Try a launch'}
+                <span>↗</span>
+              </button>
+              <small>
+                {isDemo
+                  ? 'Just for fun. Nothing gets published.'
+                  : 'Try a local simulation. Nothing gets published.'}
+              </small>
+            </div>
+          </section>
+          <section className="world-strip" aria-label="Planet statistics">
+            <div>
+              <span className="strip-symbol">✳</span>
+              <p>
+                A little planet.
+                <br />
+                <strong>A lot of possibility.</strong>
+              </p>
+            </div>
+            <div className="stat">
+              <strong>
+                {loading ? '—' : world.projects.length}
+                <span>{world.nextCursor ? '+' : ''}</span>
+              </strong>
+              <span>{isDemo ? 'imaginary projects' : 'projects in view'}</span>
+            </div>
+            <div className="stat">
+              <strong>{loading ? '—' : total}</strong>
+              <span>{isDemo ? 'simulated launches' : 'launches across these sites'}</span>
+            </div>
+            <div className="strip-note">
+              <span>OPEN SOURCE. OPEN UNIVERSE.</span>
+              <p>Made for the joy of shipping.</p>
+            </div>
+          </section>
+          <section className="directory" id="explore" aria-labelledby="directory-title">
+            <div className="directory-top">
+              <div>
+                <span className="eyebrow">GOOD IDEAS FIND GOOD COMPANY</span>
+                <h2 id="directory-title">Meet the neighborhood.</h2>
+                <p>
+                  {isDemo
+                    ? 'A few imaginary projects to help you explore the possibilities.'
+                    : 'Discover the projects making their home on the planet.'}
+                </p>
+              </div>
+              <label className="search-box">
+                <Icon name="search" size={18} />
+                <span className="sr-only">Search projects or GitHub owners</span>
+                <input
+                  type="search"
+                  placeholder="Find a project or builder…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
+            </div>
+            {directoryError && (
+              <div className="directory-state" role="alert">
+                {directoryError}
+                <button className="text-button" onClick={() => setRetry((n) => n + 1)}>
+                  Try again
+                </button>
+              </div>
+            )}
+            <div className="directory-grid" aria-busy={directoryLoading}>
+              {projects.map((project, i) => (
+                <button
+                  className="directory-project"
+                  key={project.id}
+                  onClick={() => {
+                    select(project);
+                    document
+                      .querySelector('.mission')
+                      ?.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth' });
+                  }}
+                >
+                  <span className={`project-number color-${i % 3}`}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span>
+                    <strong>{project.name}</strong>
+                    <small>by {project.owner}</small>
+                    <p>{project.description}</p>
+                    <span className="directory-count">
+                      {project.launchCount} {isDemo ? 'simulated launches' : 'launches'}{' '}
+                      <span>↗</span>
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            {directoryLoading && (
+              <p className="directory-state" role="status">
+                Looking around the neighborhood…
+              </p>
+            )}
+            {!directoryLoading && !projects.length && !directoryError && (
+              <div className="directory-state">
+                {query
+                  ? 'No landing sites match that search. Try a project name or GitHub owner.'
+                  : 'There’s room for the first arrival. Add your project to get started.'}
+              </div>
+            )}
+            {projectCursor && (
+              <button
+                className="load-more"
+                disabled={directoryLoading}
+                onClick={() => void moreProjects()}
+              >
+                Explore more projects ↓
+              </button>
+            )}
+            {world.nextCursor && (
+              <button className="text-button" onClick={() => void moreWorld()}>
+                Load more landing sites on the planet
+              </button>
+            )}
+          </section>
+        </main>
+        <footer>
+          <a className="brand small" href={homeUrl}>
+            shipit.
+          </a>
+          <p>Big things start with a little ship.</p>
+          <span>
+            {isDemo
+              ? 'LOCAL DEMO · NO REAL DEPLOYMENTS'
+              : 'PUBLIC PROJECTS · VERIFIED GITHUB PROVENANCE'}
+          </span>
+        </footer>
+      </div>
+      {setup && <Setup close={() => setSetup(false)} />}
+      <div className={`toast ${toast ? 'shown' : ''}`} role="status" aria-live="polite">
+        {toast}
+      </div>
+      <span className="sr-only" role="status" aria-live="polite">
+        {flight
+          ? `${isDemo ? 'Simulated' : 'Deployment'} launch for ${flight.project.name}: ${stage}`
+          : ''}
+      </span>
+    </>
+  );
 }
-

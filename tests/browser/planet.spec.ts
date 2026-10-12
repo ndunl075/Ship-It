@@ -8,7 +8,9 @@ test('explore, launch, share, setup and keyboard controls', async ({ page, conte
   await expect(page.getByText('LOCAL DEMO · NO REAL DEPLOYMENTS')).toBeVisible();
   await page.screenshot({ path: 'test-results/planet-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Try a launch' }).click();
-  await expect(page.getByRole('complementary', { name: 'Little Orbit project details' })).toBeVisible();
+  await expect(
+    page.getByRole('complementary', { name: 'Little Orbit project details' }),
+  ).toBeVisible();
   await expect(page).toHaveURL(/launch=sim-0-0/);
   await page.getByRole('button', { name: 'Copy link', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Link copied' })).toBeVisible();
@@ -32,7 +34,9 @@ test('deep link, mobile and reduced motion remain usable', async ({ page }) => {
   await page.goto('./?launch=sim-0-0');
   await expect(page.getByRole('heading', { name: 'Little Orbit', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reduced motion' })).toBeDisabled();
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+    .toBe(true);
   await page.screenshot({ path: 'test-results/planet-mobile.png', fullPage: true });
   await page.getByRole('button', { name: 'Close project details' }).click();
   await page.getByRole('searchbox').fill('maya');

@@ -1,4 +1,4 @@
-# Template: replace the Action revision and Worker origin before installation.
+# Public production deployments only. Pin a reviewed full SHA for immutable installs.
 name: Celebrate a production deployment
 on:
   deployment_status:
@@ -15,7 +15,7 @@ jobs:
       - name: Launch on Ship It
         id: ship-it
         continue-on-error: true
-        uses: ndunl075/Ship-It@REPLACE_WITH_TESTED_40_CHARACTER_COMMIT_SHA
+        uses: ndunl075/Ship-It@10b9f01ae16a6f73f193fb84000e9b430e1d8231
         with:
           deployment_id: ${{ github.event.deployment.id }}
-          api_url: https://YOUR-WORKER.workers.dev
+          api_url: https://ship-it-api.coform.workers.dev

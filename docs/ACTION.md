@@ -4,23 +4,23 @@ Ship It records a successful **public GitHub deployment** and returns a shareabl
 
 ## Release status
 
-The Action is implemented but **`v1` has not been published**. No official Worker origin is configured by default. Deploy your own Worker using the setup guide, then use a reviewed full 40-character commit SHA from a tested revision of this repository. Replace `REPLACE_WITH_TESTED_40_CHARACTER_COMMIT_SHA` in the examples before use. These are templates, not ready-to-run workflows. Maintainers must complete the real OIDC/deployment smoke test before publishing an immutable release and moving `v1` tag. SHA pinning remains recommended after release.
+The official Worker is `https://ship-it-api.coform.workers.dev`. The real signed-OIDC smoke test passed production registration, replay idempotency, failed/staging rejection and nonblocking outage handling ([evidence](https://github.com/ndunl075/Ship-It/actions/runs/38209919539)). The examples pin the tested full commit `10b9f01ae16a6f73f193fb84000e9b430e1d8231`; SHA pinning is recommended even when a moving `v1` tag is available. Forks can deploy their own Worker using the setup guide.
 
 The root `action.yml` uses [GitHub's Node 24 runtime](https://docs.github.com/en/actions/reference/workflows-and-actions/metadata-syntax#runsusing-for-javascript-actions); adopters do not need to install Node or check out Ship It. Self-hosted runners must support Node 24 actions. The self-contained `packages/action/dist/index.js` is committed in the repository.
 
 ## Inputs and outputs
 
-| Input | Required | Meaning |
-| --- | --- | --- |
-| `deployment_id` | Yes | Positive numeric ID of a real GitHub deployment in this repository |
-| `api_url` | Yes, until an official service is published | Worker HTTPS origin, e.g. `https://your-worker.workers.dev`; no path, credentials, query or fragment |
-| `environment` | No | Defaults to `production`; v1 supports exactly `production` |
+| Input           | Required | Meaning                                                                                                |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `deployment_id` | Yes      | Positive numeric ID of a real GitHub deployment in this repository                                     |
+| `api_url`       | No       | Defaults to the official Worker; custom HTTPS origin must have no path, credentials, query or fragment |
+| `environment`   | No       | Defaults to `production`; v1 supports exactly `production`                                             |
 
-| Output | Meaning |
-| --- | --- |
+| Output       | Meaning                                                                  |
+| ------------ | ------------------------------------------------------------------------ |
 | `registered` | `true` on success or duplicate; `false` on optional registration failure |
-| `launch_id` | Stable ID of the launch, empty on failure |
-| `launch_url` | Public deep link, empty on failure |
+| `launch_id`  | Stable ID of the launch, empty on failure                                |
+| `launch_url` | Public deep link, empty on failure                                       |
 
 Ship It requests a short-lived GitHub OIDC token with audience `ship-it-api`; grant the calling **job** `id-token: write`. There is no Ship It API key, user PAT, or user account requirement. Tokens remain in memory and are never written to outputs, summaries, disk, or logs. The Worker independently checks provenance, public visibility, deployment SHA, successful status, production environment and recent-deploy window (24 hours by default).
 
