@@ -1,0 +1,27 @@
+name: Ship It
+description: Celebrate a verified public production GitHub deployment on the shared Ship It planet.
+author: Ship It contributors
+branding:
+  icon: send
+  color: purple
+inputs:
+  deployment_id:
+    description: The numeric ID of a real successful GitHub deployment.
+    required: true
+  api_url:
+    description: HTTPS origin of your deployed Ship It Worker (no official origin published yet).
+    required: true
+  environment:
+    description: GitHub deployment environment; v1 supports production.
+    default: production
+    required: false
+outputs:
+  launch_id:
+    description: Stable ID of the registered launch, including duplicate submissions.
+  launch_url:
+    description: Public launch deep link.
+  registered:
+    description: True if the deployment was registered or already registered; false on optional failure.
+runs:
+  using: node24
+  main: packages/action/dist/index.js
