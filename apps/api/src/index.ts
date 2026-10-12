@@ -9,7 +9,7 @@ interface EdgeCache {match(request:Request):Promise<Response|undefined>; put(req
 export function createWorker(options: {keys?:JWTVerifyGetKey; fetcher?:typeof fetch; now?:()=>Date; log?:(record:Record<string,unknown>)=>void; cache?:EdgeCache} = {}) {
  return { async fetch(request:Request,env:Env,context?:Context):Promise<Response> {
   const requestId=crypto.randomUUID(),started=Date.now(),url=new URL(request.url),now=options.now?.()??new Date();
-  let status=500,code:string|undefined;
+  let status=500,code:string|undefined,diagnostic:ApiError['diagnostic'];
   const origin=request.headers.get('Origin');
   const headers:Record<string,string>={'Content-Type':'application/json; charset=utf-8','X-Content-Type-Options':'nosniff','X-Request-Id':requestId,'Vary':'Origin','Cache-Control':'no-store'};
   if(origin===env.PLANET_ORIGIN) headers['Access-Control-Allow-Origin']=origin;
@@ -69,10 +69,10 @@ export function createWorker(options: {keys?:JWTVerifyGetKey; fetcher?:typeof fe
    if(request.headers.get('If-None-Match')?.split(',').map(s=>s.trim()).includes(etag)) {status=304;return new Response(null,{status,headers});}
    return respond(data);
   } catch(error) {
-   const e=error instanceof ApiError?error:new ApiError(500,'internal_error');code=e.code;
+   const e=error instanceof ApiError?error:new ApiError(500,'internal_error');code=e.code;diagnostic=e.diagnostic;
    if(e.status===429) headers['Retry-After']='60';
    return respond({error:{code:e.code},request_id:requestId},e.status);
-  } finally { (options.log??console.log)({request_id:requestId,status,latency_bucket_ms:Math.ceil((Date.now()-started)/100)*100,...(code?{error_code:code}:{})}); }
+  } finally { (options.log??console.log)({request_id:requestId,status,latency_bucket_ms:Math.ceil((Date.now()-started)/100)*100,...(code?{error_code:code}:{}),...diagnostic}); }
  }};
 }
 async function boundedBody(request:Request):Promise<string> {
