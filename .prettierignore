@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+.worktrees
+**/dist
+**/.wrangler
+coverage
+playwright-report
+test-results
+pnpm-lock.yaml
+ARCHITECTURE.md

@@ -9,16 +9,25 @@ const warning = (message: string): void => {
 async function main(): Promise<void> {
   // The token stays only in memory. Raw failures and event contents are never logged.
   const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH ?? '', 'utf8')) as unknown;
-  await run({ env: process.env, event, fetch: globalThis.fetch,
-    sleep: ms => new Promise(resolve => setTimeout(resolve, ms)), random: Math.random, warning,
+  await run({
+    env: process.env,
+    event,
+    fetch: globalThis.fetch,
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    random: Math.random,
+    warning,
     output: (name, value) => {
       if (!process.env.GITHUB_OUTPUT) throw new Error('Missing output path');
       appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
     },
-    summary: markdown => {
+    summary: (markdown) => {
       if (!process.env.GITHUB_STEP_SUMMARY) throw new Error('Missing summary path');
       appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdown);
-    }
+    },
   });
 }
-void main().catch(() => warning('Optional Ship It celebration could not start. Check the workflow event context; your deployment is unaffected.'));
+void main().catch(() =>
+  warning(
+    'Optional Ship It celebration could not start. Check the workflow event context; your deployment is unaffected.',
+  ),
+);

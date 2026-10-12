@@ -2,16 +2,16 @@
 
 All bodies are JSON. Read endpoints require no authentication. In production, browser Origin must equal `PLANET_ORIGIN`; clients without Origin are supported. Write authentication is independent of CORS.
 
-| Method | Path | Response |
-| --- | --- | --- |
-| GET | `/healthz` | `{ "ok": true }`, no DB read |
-| GET | `/v1/world` | `{ projects, launches, nextCursor }` |
-| GET | `/v1/projects` | `{ items: Project[], nextCursor }` |
-| GET | `/v1/projects/:numeric_repository_id` | `Project` |
-| GET | `/v1/projects/:numeric_repository_id/launches` | `{ items: Launch[], nextCursor }` |
-| GET | `/v1/launches` | `{ items: Launch[], nextCursor }` |
-| GET | `/v1/launches/:launch_id` | `{ launch, project }` |
-| POST | `/v1/launches` | `{ launch_id, project_id, duplicate, launch_url }` |
+| Method | Path                                           | Response                                           |
+| ------ | ---------------------------------------------- | -------------------------------------------------- |
+| GET    | `/healthz`                                     | `{ "ok": true }`, no DB read                       |
+| GET    | `/v1/world`                                    | `{ projects, launches, nextCursor }`               |
+| GET    | `/v1/projects`                                 | `{ items: Project[], nextCursor }`                 |
+| GET    | `/v1/projects/:numeric_repository_id`          | `Project`                                          |
+| GET    | `/v1/projects/:numeric_repository_id/launches` | `{ items: Launch[], nextCursor }`                  |
+| GET    | `/v1/launches`                                 | `{ items: Launch[], nextCursor }`                  |
+| GET    | `/v1/launches/:launch_id`                      | `{ launch, project }`                              |
+| POST   | `/v1/launches`                                 | `{ launch_id, project_id, duplicate, launch_url }` |
 
 Project and Launch contracts live in `packages/shared`. Hidden projects and all associated launches are excluded. Default limit is 30, or 100 for world; limits must be integers 1–100. World contains a project page plus the latest 30 launches. Project search uses `query` up to 100 characters and matches owner, repository, or display name. Cursors are opaque, bound to route/search, and ordered descending by timestamp plus ID. Pass `nextCursor` as `cursor` to fetch another page. New records can reorder project pages during pagination; keyset pagination avoids costly offsets.
 
@@ -22,7 +22,13 @@ Read responses have ETags and 30-second caching, including Worker edge caching w
 Send `Authorization: Bearer <GitHub Actions OIDC token>` and `Content-Type: application/json`. Token audience is exactly `ship-it-api`. Body limit is 8 KiB, enforced while streaming even without Content-Length.
 
 ```json
-{"schema_version":1,"repository_id":123456,"deployment_id":987654,"environment":"production","commit_sha":"0123456789abcdef0123456789abcdef01234567"}
+{
+  "schema_version": 1,
+  "repository_id": 123456,
+  "deployment_id": 987654,
+  "environment": "production",
+  "commit_sha": "0123456789abcdef0123456789abcdef01234567"
+}
 ```
 
 Only this strict schema is accepted. Owner, description, names, and URLs come from GitHub. The signed token's numeric repository ID, public visibility, SHA, run ID, attempt, and event are checked against REST repository/deployment/run data. Supported event contexts: push, workflow_dispatch, deployment_status, workflow_run, release. Fork and pull-request contexts are excluded. The authenticated workflow SHA must equal the deployed SHA. The deployment must explicitly identify a production environment, its most recent status must be success, and that success must be within 24 hours (with at most one minute of future clock skew). A later failure/inactive status supersedes earlier success.

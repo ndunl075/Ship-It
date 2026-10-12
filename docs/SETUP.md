@@ -23,7 +23,7 @@ Set Settings → Pages → Source to **GitHub Actions**. Add repository Actions 
 
 ## Add the Action to an adopter repository
 
-Read [ACTION.md](ACTION.md). Use a full tested commit SHA until the `v1` release gate has passed. Copy the deployment-status example when the provider creates GitHub Deployments. Otherwise invoke the Action as the last step after the provider confirms success, passing a real deployment ID. Keep `id-token: write`, `contents: read`, `environment: production`, and `continue-on-error: true` on the optional celebration step.
+Read [ACTION.md](ACTION.md). The examples pin the tested full commit SHA and use the official API at `https://ship-it-api.coform.workers.dev`; adopters do not need their own Cloudflare account. Copy the deployment-status example when the provider creates GitHub Deployments. Otherwise invoke the Action as the last step after the provider confirms success, passing a real deployment ID. Keep `id-token: write`, `contents: read`, `environment: production`, and `continue-on-error: true` on the optional celebration step.
 
 Ship It supports public repositories and GitHub deployment records with a recent successful production status. A successful record establishes GitHub provenance; it does not prove continuous uptime, safety, or independent provider verification. Preview, staging, private repositories and arbitrary webhook JSON are unsupported.
 

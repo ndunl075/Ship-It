@@ -9,8 +9,9 @@ inputs:
     description: The numeric ID of a real successful GitHub deployment.
     required: true
   api_url:
-    description: HTTPS origin of your deployed Ship It Worker (no official origin published yet).
-    required: true
+    description: HTTPS origin of the Ship It Worker; override for a self-hosted planet.
+    default: https://ship-it-api.coform.workers.dev
+    required: false
   environment:
     description: GitHub deployment environment; v1 supports production.
     default: production

@@ -8,6 +8,10 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
-  "dependencies": { "@ship-it/shared": "workspace:*" },
-  "devDependencies": { "esbuild": "^0.25.12" }
+  "dependencies": {
+    "@ship-it/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  }
 }
