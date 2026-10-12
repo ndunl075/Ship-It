@@ -35,6 +35,13 @@ async function post(claims:Record<string,unknown>={},payload:unknown=input){retu
 async function get(path:string){return worker.fetch(new Request('https://api.test'+path),env);}
 beforeEach(()=>{db=new SqliteAdapter();env={DB:db,PLANET_ORIGIN:'https://planet.test',SITE_ORIGIN:'https://planet.test/Ship-It/',GITHUB_OIDC_AUDIENCE:'ship-it-api',IP_LIMITER:{limit:async()=>({success:true})},REPO_LIMITER:{limit:async()=>({success:true})}};overrides={};logs.length=0;});
 describe('verified registration',()=>{
+ it('uses supported manual redirect mode and follows only bounded GitHub redirects',async()=>{
+  const calls:string[]=[];const client=githubClient('maintainer-test',async(url,init)=>{calls.push(String(url));expect(init?.redirect).toBe('manual');return calls.length===1?new Response(null,{status:301,headers:{Location:'https://api.github.com/repos/owner/renamed'}}):Response.json({id:42});});
+  expect(await client('/repositories/42')).toEqual({id:42});expect(calls).toHaveLength(2);
+  let count=0;const unsafe=githubClient('maintainer-test',async()=>{count++;return new Response(null,{status:302,headers:{Location:'https://attacker.test/steal'}});});
+  await expect(unsafe('/repositories/42')).rejects.toMatchObject({status:502,diagnostic:{upstream_status:302,upstream_failure:'redirect'}});expect(count).toBe(1);
+  let loopCount=0;const loop=githubClient(undefined,async()=>{loopCount++;return new Response(null,{status:301,headers:{Location:'/repositories/42'}});});await expect(loop('/repositories/42')).rejects.toMatchObject({status:502});expect(loopCount).toBe(3);
+ });
  it.each([['Illegal invocation secret-token','illegal_invocation'],['AbortSignal.timeout is not a function secret-token','unsupported_timeout'],['redirect not allowed secret-token','redirect'],['fetch failed secret-token','fetch_failed'],['other secret-token','network']])('classifies runtime failures without leaking messages',async(message,classification)=>{
   const client=githubClient(undefined,async()=>{throw new TypeError(message);});
   let error:unknown;try {await client('/repositories/42');}catch(caught){error=caught;}

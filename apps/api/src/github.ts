@@ -6,8 +6,20 @@ export type Verified = { repo: Repo; targetUrl: string | null; statusUrl: string
 export function githubClient(token?: string, fetcher: typeof fetch = (input, init) => globalThis.fetch(input, init)) {
  return async function get<T>(path: string): Promise<T> {
   let response: Response;
-  try { response = await fetcher(`https://api.github.com${path}`, { headers: { Accept:'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', 'User-Agent':'Ship-It', ...(token ? {Authorization:`Bearer ${token}`} : {}) }, signal: AbortSignal.timeout(7000), redirect:'error' }); }
+  try {
+   let url=new URL(`https://api.github.com${path}`);
+   const signal=AbortSignal.timeout(7000);
+   for(let redirects=0;;redirects++) {
+    response = await fetcher(url.toString(), { headers: { Accept:'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', 'User-Agent':'Ship-It', ...(token ? {Authorization:`Bearer ${token}`} : {}) }, signal, redirect:'manual' });
+    if(![301,302,303,307,308].includes(response.status)) break;
+    const location=response.headers.get('Location');
+    let next:URL|undefined;try {if(location) next=new URL(location,url);}catch { /* Invalid redirect is rejected below. */ }
+    if(redirects>=2 || !next || next.origin!=='https://api.github.com' || next.username || next.password) throw new ApiError(502,'github_unavailable',{upstream_path:path,upstream_status:response.status,upstream_failure:'redirect'});
+    url=next;
+   }
+  }
   catch(error) {
+   if(error instanceof ApiError) throw error;
    const name=error instanceof Error?error.name:'';
    const message=error instanceof Error?error.message:'';
    const failure = ['TimeoutError','AbortError'].includes(name) ? 'timeout'
