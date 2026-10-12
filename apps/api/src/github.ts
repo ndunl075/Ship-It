@@ -7,10 +7,15 @@ export function githubClient(token?: string, fetcher: typeof fetch = fetch) {
  return async function get<T>(path: string): Promise<T> {
   let response: Response;
   try { response = await fetcher(`https://api.github.com${path}`, { headers: { Accept:'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', 'User-Agent':'Ship-It', ...(token ? {Authorization:`Bearer ${token}`} : {}) }, signal: AbortSignal.timeout(7000), redirect:'error' }); }
-  catch { throw new ApiError(502,'github_unavailable'); }
+  catch(error) { throw new ApiError(502,'github_unavailable',{upstream_path:path,upstream_failure:error instanceof Error && ['TimeoutError','AbortError'].includes(error.name)?'timeout':'network'}); }
+  const rawRemaining=response.headers.get('X-RateLimit-Remaining');
+  const remaining=rawRemaining!==null && /^\d+$/.test(rawRemaining)?Number(rawRemaining):undefined;
+  const diagnostic={upstream_path:path,upstream_status:response.status,...(remaining!==undefined?{upstream_remaining:remaining}:{})};
   if (response.status === 404) throw new ApiError(404,'deployment_missing');
-  if (!response.ok) throw new ApiError(502,'github_unavailable');
-  try { return await response.json() as T; } catch { throw new ApiError(502,'github_unavailable'); }
+  if(response.status===429 || (response.status===403 && (remaining===0 || response.headers.has('Retry-After')))) throw new ApiError(502,'github_rate_limited',diagnostic);
+  if(response.status===403) throw new ApiError(502,'github_forbidden',diagnostic);
+  if (!response.ok) throw new ApiError(502,'github_unavailable',diagnostic);
+  try { return await response.json() as T; } catch { throw new ApiError(502,'github_unavailable',{...diagnostic,upstream_failure:'invalid_json'}); }
  };
 }
 export async function verifyDeployment(input: LaunchInput, identity: Identity, get: ReturnType<typeof githubClient>, now = Date.now()): Promise<Verified> {

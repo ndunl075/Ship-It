@@ -11,5 +11,5 @@ export interface Env {
  GITHUB_API_TOKEN?: string; IP_LIMITER: Limiter; REPO_LIMITER: Limiter;
 }
 export class ApiError extends Error {
- constructor(public status: number, public code: string) { super(code); }
+ constructor(public status: number, public code: string, public diagnostic?: { upstream_path: string; upstream_status?: number; upstream_remaining?: number; upstream_failure?: 'timeout'|'network'|'invalid_json' }) { super(code); }
 }
